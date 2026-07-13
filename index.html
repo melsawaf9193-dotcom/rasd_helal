@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام متابعة المباشرة | الهلال الأحمر</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --main: #cc0000;
+            --success: #22c55e;
+            --danger: #cc0000;
+            --card: #ffffff;
+            --dark: #1e1e1e;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Cairo", sans-serif;
+            background-image: url("https://raw.githubusercontent.com/xhhp1/medicaljpg/main/medic.jpg.jpg");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px; /* زيادة العرض لاستيعاب التواريخ الدقيقة */
+            margin: auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.96);
+            border-top: 8px solid var(--main);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: var(--main);
+            margin: 0;
+            font-size: 28px;
+            font-weight: 900;
+        }
+
+        .header p {
+            color: #555;
+            margin: 5px 0 0;
+            font-weight: 700;
+        }
+
+        .auth-section, .admin-section, .user-section {
+            display: none;
+        }
+
+        .active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        input[type="text"], input[type="password"], input[type="datetime-local"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: "Cairo", sans-serif;
+            font-size: 14px;
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--main);
+            outline: none;
+            box-shadow: 0 0 10px rgba(204, 0, 0, 0.2);
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-family: "Cairo", sans-serif;
+            font-size: 15px;
+            line-height: 1.8;
+            resize: vertical;
+            transition: 0.3s;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            margin-top: 15px;
+            background: var(--main);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-family: "Cairo", sans-serif;
+            font-size: 18px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #990000;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #555;
+        }
+        .btn-secondary:hover {
+            background: #333;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            padding: 8px 12px;
+            font-size: 14px;
+            width: auto;
+            margin-top: 0;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+
+        .btn-edit {
+            background: var(--warning);
+            padding: 8px 12px;
+            font-size: 14px;
+            width: auto;
+            margin-top: 0;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            margin-left: 5px;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-edit:hover {
+            background: #d97706;
+        }
+
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .user-table th, .user-table td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .user-table th {
+            background-color: #f3f4f6;
+            color: #374151;
+            font-weight: 700;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-admin { background: #fee2e2; color: #991b1b; }
+        .badge-user { background: #dbeafe; color: #1e40af; }
+
+        .result-section {
+            margin-top: 30px;
+        }
+
+        .medic-card {
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f8f8f8;
+            border: 2px solid #e5e5e5;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .medic-card strong {
+            color: var(--main);
+            font-size: 21px;
+        }
+
+        .status-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: var(--card);
+            border-right: 6px solid #ccc;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-card.ok { border-right-color: var(--success); }
+        .status-card.no { border-right-color: var(--danger); }
+
+        .status-text { font-weight: 700; }
+        .status-card.ok .status-text { color: #15803d; }
+        .status-card.no .status-text { color: var(--danger); }
+
+        .summary {
+            padding: 25px;
+            margin-top: 30px;
+            background: var(--main);
+            color: white;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .summary h2 {
+            margin: 0;
+            font-size: 25px;
+            font-weight: 900;
+            line-height: 1.8;
+        }
+
+        .error-message {
+            padding: 20px;
+            background: #fff;
+            color: var(--danger);
+            border-right: 6px solid var(--danger);
+            border-radius: 12px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f3f4f6;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 20px 10px; }
+            .container { padding: 20px 15px; }
+            .header h1 { font-size: 22px; }
+            .status-card { flex-direction: column; align-items: flex-start; }
+            .summary h2 { font-size: 19px; }
+            .form-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>نظام مراقبة المباشرة | الهلال الأحمر</h1>
+        <p>بوابة المراقبة والتحكم في دفاتر الحضور</p>
+    </div>
+
+    <!-- 1️⃣ شاشة تسجيل الدخول -->
+    <div id="auth-section" class="auth-section active">
+        <h3 style="text-align: center; margin-bottom: 20px;">تسجيل الدخول للنظام</h3>
+        <div id="login-error" class="error-message" style="display: none; margin-bottom: 15px;"></div>
+        
+        <div class="form-group">
+            <label>اسم المستخدم</label>
+            <input type="text" id="username" placeholder="أدخل اسم المستخدم...">
+        </div>
+        <div class="form-group">
+            <label>كلمة المرور</label>
+            <input type="password" id="password" placeholder="أدخل كلمة المرور...">
+        </div>
+        <button type="button" onclick="handleLogin()">دخول النظام</button>
+    </div>
+
+    <!-- 2️⃣ لوحة تحكم الأدمن (مسؤول النظام) -->
+    <div id="admin-section" class="admin-section">
+        <div class="nav-bar">
+            <span>مرحباً، <strong style="color: var(--main)">المسؤول (الأدمن)</strong></span>
+            <button class="btn-danger" style="margin-top: 0;" onclick="logout()">خروج</button>
+        </div>
+
+        <!-- حقول إضافة وتعديل الأعضاء -->
+        <div style="background: #f9fafb; padding: 20px; border-radius: 12px; border: 1px dashed #ccc; margin-bottom: 30px;">
+            <h3 id="form-title" style="margin-top: 0; border-bottom: 2px solid var(--main); padding-bottom: 8px; color: #333;">إنشاء حساب عضو جديد</h3>
+            
+            <!-- حقل خفي لتخزين اسم المستخدم الجاري تعديله لمعرفته برمجياً -->
+            <input type="hidden" id="editing-user-id" value="">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>اسم المستخدم (كود العضو)</label>
+                    <input type="text" id="new-user" placeholder="مثال: E-854">
+                </div>
+                <div class="form-group">
+                    <label>كلمة المرور</label>
+                    <input type="text" id="new-pass" placeholder="كلمة المرور...">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>تاريخ ووقت بداية النوبة المسموحة 🟢</label>
+                    <input type="datetime-local" id="start-datetime">
+                </div>
+                <div class="form-group">
+                    <label>تاريخ ووقت نهاية النوبة المسموحة 🔴</label>
+                    <input type="datetime-local" id="end-datetime">
+                </div>
+            </div>
+
+            <button type="button" id="submit-btn" onclick="createUser()">إضافة العضو وتحديد الصلاحية</button>
+            <button type="button" id="cancel-edit-btn" class="btn-secondary" style="display: none; margin-top: 10px;" onclick="cancelEdit()">إلغاء التعديل والعودة للإضافة</button>
+        </div>
+
+        <h3 style="border-bottom: 2px solid var(--main); padding-bottom: 8px;">قائمة الأعضاء المسجلين والتحكم ببياناتهم</h3>
+        <div style="overflow-x: auto;">
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>اسم العضو</th>
+                        <th>كلمة المرور 🔐</th>
+                        <th>بداية صلاحية النوبة 📅🟢</th>
+                        <th>نهاية صلاحية النوبة 📅🔴</th>
+                        <th>التحكم والإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="user-list-tbody">
+                    <!-- تظهر هنا البيانات والتحكم من خلال الـ JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 3️⃣ لوحة المستخدم العادي (المسعف) -->
+    <div id="user-section" class="user-section">
+        <div class="nav-bar">
+            <span>مرحباً بالمسعف: <strong id="logged-user-display"></strong></span>
+            <span id="user-time-badge" class="badge badge-admin" style="font-size: 11px;"></span>
+            <button class="btn-danger" style="margin-top: 0;" onclick="logout()">خروج</button>
+        </div>
+
+        <textarea id="log" placeholder="الصق سجلات تسجيل الدخول والخروج من الديسكورد هنا..."></textarea>
+        <button type="button" onclick="analyze()">تحليل البيانات الآن</button>
+        <div id="res" class="result-section"></div>
+    </div>
+</div>
+
+<script>
+    // الحصول على تاريخ ووقت منسقين كافتراضي للحقول الجديدة (البداية الآن، النهاية بعد 24 ساعة)
+    function getDefaultStartDateTime() {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        return now.toISOString().slice(0, 16);
+    }
+
+    function getDefaultEndDateTime() {
+        const future = new Date();
+        future.setDate(future.getDate() + 1); // غداً تلقائياً
+        future.setMinutes(future.getMinutes() - future.getTimezoneOffset());
+        return future.toISOString().slice(0, 16);
+    }
+
+    // تعيين القيم الافتراضية
+    document.getElementById("start-datetime").value = getDefaultStartDateTime();
+    document.getElementById("end-datetime").value = getDefaultEndDateTime();
+
+    // قاعدة بيانات الحسابات الافتراضية
+    const DEFAULT_USERS = [
+        { username: "admin", password: "admin123", role: "admin", start: "2026-01-01T00:00", end: "2099-12-31T23:59" }
+    ];
+
+    let users = JSON.parse(localStorage.getItem("red_crescent_users")) || DEFAULT_USERS;
+    let currentUser = JSON.parse(sessionStorage.getItem("active_user")) || null;
+    let autoKickInterval = null;
+
+    // دالة لتنسيق التاريخ والوقت لعرض مريح للعين
+    function formatFriendlyDateTime(dtStr) {
+        if (!dtStr) return "غير محدد";
+        const dt = new Date(dtStr);
+        if (isNaN(dt.getTime())) return dtStr;
+        
+        const year = dt.getFullYear();
+        const month = String(dt.getMonth() + 1).padStart(2, '0');
+        const day = String(dt.getDate()).padStart(2, '0');
+        
+        let hours = dt.getHours();
+        const minutes = String(dt.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // الساعة 12
+        
+        return `${year}/${month}/${day} - ${hours}:${minutes} ${ampm}`;
+    }
+
+    function saveUsers() {
+        localStorage.setItem("red_crescent_users", JSON.stringify(users));
+    }
+
+    // فحص هل الوقت الحالي يقع بدقة تامة بين تاريخ ووقت البداية والنهاية؟
+    function isWithinAllowedTime(user) {
+        if (user.role === "admin") return true;
+        if (!user.start || !user.end) return false;
+
+        const now = new Date();
+        const start = new Date(user.start);
+        const end = new Date(user.end);
+
+        return now >= start && now <= end;
+    }
+
+    // عند تحميل الصفحة
+    window.addEventListener("DOMContentLoaded", () => {
+        const kickReason = sessionStorage.getItem("kick_reason");
+        const errorDiv = document.getElementById("login-error");
+
+        if (kickReason === "time_ended") {
+            errorDiv.innerText = "⚠️ تم تسجيل خروجك تلقائياً لانتهاء تاريخ أو وقت نوبتك المسموح بها!";
+            errorDiv.style.display = "block";
+            sessionStorage.removeItem("kick_reason");
+        }
+
+        if (currentUser) {
+            const freshUser = users.find(u => u.username.toLowerCase() === currentUser.username.toLowerCase());
+            if (freshUser && freshUser.role === "admin") {
+                document.getElementById("auth-section").classList.remove("active");
+                document.getElementById("admin-section").classList.add("active");
+                renderUserList();
+            } else if (freshUser && isWithinAllowedTime(freshUser)) {
+                currentUser = freshUser;
+                document.getElementById("auth-section").classList.remove("active");
+                document.getElementById("logged-user-display").innerText = currentUser.username;
+                document.getElementById("user-time-badge").innerText = `صلاحية حسابك من: [ ${formatFriendlyDateTime(currentUser.start)} ] إلى [ ${formatFriendlyDateTime(currentUser.end)} ]`;
+                document.getElementById("user-section").classList.add("active");
+                startAutoKickTimer();
+            } else {
+                sessionStorage.removeItem("active_user");
+                currentUser = null;
+            }
+        }
+    });
+
+    // فحص الخروج التلقائي الدقيق
+    function startAutoKickTimer() {
+        if (autoKickInterval) clearInterval(autoKickInterval);
+        
+        autoKickInterval = setInterval(() => {
+            if (currentUser && currentUser.role !== "admin") {
+                const freshUser = users.find(u => u.username.toLowerCase() === currentUser.username.toLowerCase());
+                
+                if (!freshUser || !isWithinAllowedTime(freshUser)) {
+                    sessionStorage.removeItem("active_user");
+                    sessionStorage.setItem("kick_reason", "time_ended");
+                    currentUser = null;
+                    window.location.reload();
+                }
+            }
+        }, 5000); // يفحص كل 5 ثوانٍ بدقة تامة
+    }
+
+    // تسجيل الدخول
+    function handleLogin() {
+        const userInp = document.getElementById("username").value.trim();
+        const passInp = document.getElementById("password").value;
+        const errorDiv = document.getElementById("login-error");
+
+        errorDiv.style.display = "none";
+
+        const foundUser = users.find(u => u.username.toLowerCase() === userInp.toLowerCase() && u.password === passInp);
+
+        if (!foundUser) {
+            errorDiv.innerText = "❌ اسم المستخدم أو كلمة المرور غير صحيحة!";
+            errorDiv.style.display = "block";
+            return;
+        }
+
+        if (foundUser.role !== "admin" && !isWithinAllowedTime(foundUser)) {
+            errorDiv.innerText = `❌ الحساب غير نشط حالياً! نوبتك المسموحة تبدأ من: [ ${formatFriendlyDateTime(foundUser.start)} ] وتنهي في: [ ${formatFriendlyDateTime(foundUser.end)} ]`;
+            errorDiv.style.display = "block";
+            return;
+        }
+
+        currentUser = foundUser;
+        sessionStorage.setItem("active_user", JSON.stringify(currentUser));
+        document.getElementById("auth-section").classList.remove("active");
+
+        if (currentUser.role === "admin") {
+            document.getElementById("admin-section").classList.add("active");
+            renderUserList();
+        } else {
+            document.getElementById("logged-user-display").innerText = currentUser.username;
+            document.getElementById("user-time-badge").innerText = `صلاحية نوبتك من: [ ${formatFriendlyDateTime(currentUser.start)} ] إلى [ ${formatFriendlyDateTime(currentUser.end)} ]`;
+            document.getElementById("user-section").classList.add("active");
+            startAutoKickTimer();
+        }
+    }
+
+    // تسجيل الخروج
+    function logout() {
+        currentUser = null;
+        sessionStorage.removeItem("active_user");
+        if (autoKickInterval) clearInterval(autoKickInterval);
+        document.getElementById("admin-section").classList.remove("active");
+        document.getElementById("user-section").classList.remove("active");
+        document.getElementById("auth-section").classList.add("active");
+        document.getElementById("username").value = "";
+        document.getElementById("password").value = "";
+        document.getElementById("res").innerHTML = "";
+        document.getElementById("log").value = "";
+    }
+
+    // إنشاء مستخدم جديد أو حفظ تعديل مستخدم قائم
+    function createUser() {
+        const usernameInp = document.getElementById("new-user").value.trim();
+        const passwordInp = document.getElementById("new-pass").value;
+        const startVal = document.getElementById("start-datetime").value;
+        const endVal = document.getElementById("end-datetime").value;
+        const editingId = document.getElementById("editing-user-id").value;
+
+        if (!usernameInp || !passwordInp || !startVal || !endVal) {
+            alert("⚠️ يرجى ملء حقول الاسم والرقم السري وتحديد تواريخ وأوقات البداية والنهاية بشكل كامل!");
+            return;
+        }
+
+        const startDateObj = new Date(startVal);
+        const endDateObj = new Date(endVal);
+
+        if (endDateObj <= startDateObj) {
+            alert("⚠️ خطأ: يجب أن يكون تاريخ ووقت نهاية النوبة بعد تاريخ ووقت البداية!");
+            return;
+        }
+
+        if (editingId) {
+            // حفظ التعديلات
+            const index = users.findIndex(u => u.username.toLowerCase() === editingId.toLowerCase());
+            if (index !== -1) {
+                users[index].password = passwordInp;
+                users[index].start = startVal;
+                users[index].end = endVal;
+                alert(`✅ تم تعديل بيانات صلاحية العضو [${editingId}] بنجاح!`);
+            }
+            cancelEdit();
+        } else {
+            // إضافة جديد
+            if (users.some(u => u.username.toLowerCase() === usernameInp.toLowerCase())) {
+                alert("⚠️ اسم هذا العضو مسجل مسبقاً في النظام!");
+                return;
+            }
+
+            users.push({
+                username: usernameInp,
+                password: passwordInp,
+                role: "user",
+                start: startVal,
+                end: endVal
+            });
+
+            alert(`✅ تمت إضافة العضو [${usernameInp}] بنجاح وتحديد النوبة بدقة.`);
+        }
+
+        saveUsers();
+        renderUserList();
+
+        // إعادة تصفير الحقول للوضع الافتراضي
+        document.getElementById("new-user").value = "";
+        document.getElementById("new-pass").value = "";
+        document.getElementById("start-datetime").value = getDefaultStartDateTime();
+        document.getElementById("end-datetime").value = getDefaultEndDateTime();
+    }
+
+    // تعبئة البيانات في الفورم للتعديل
+    function editUser(username) {
+        const user = users.find(u => u.username === username);
+        if (!user) return;
+
+        document.getElementById("form-title").innerText = `⚙️ تعديل صلاحية العضو: ${user.username}`;
+        document.getElementById("editing-user-id").value = user.username;
+
+        document.getElementById("new-user").value = user.username;
+        document.getElementById("new-user").disabled = true; // قفل الاسم للحماية
+        
+        document.getElementById("new-pass").value = user.password;
+        document.getElementById("start-datetime").value = user.start;
+        document.getElementById("end-datetime").value = user.end;
+
+        document.getElementById("submit-btn").innerText = "حفظ التعديلات الزمنية ✅";
+        document.getElementById("cancel-edit-btn").style.display = "block";
+    }
+
+    // إلغاء التعديل
+    function cancelEdit() {
+        document.getElementById("form-title").innerText = "إنشاء حساب عضو جديد";
+        document.getElementById("editing-user-id").value = "";
+        
+        document.getElementById("new-user").value = "";
+        document.getElementById("new-user").disabled = false;
+        
+        document.getElementById("new-pass").value = "";
+        document.getElementById("start-datetime").value = getDefaultStartDateTime();
+        document.getElementById("end-datetime").value = getDefaultEndDateTime();
+
+        document.getElementById("submit-btn").innerText = "إضافة العضو وتحديد الصلاحية";
+        document.getElementById("cancel-edit-btn").style.display = "none";
+    }
+
+    // حذف عضو
+    function deleteUser(username) {
+        if (username === "admin") {
+            alert("❌ لا يمكن حذف الحساب الإداري الرئيسي!");
+            return;
+        }
+        if (confirm(`هل تريد بالتأكيد حذف حساب العضو [${username}] نهائياً من النظام؟`)) {
+            users = users.filter(u => u.username !== username);
+            saveUsers();
+            renderUserList();
+            if (document.getElementById("editing-user-id").value === username) {
+                cancelEdit();
+            }
+        }
+    }
+
+    // عرض جدول الأعضاء
+    function renderUserList() {
+        const tbody = document.getElementById("user-list-tbody");
+        tbody.innerHTML = "";
+
+        users.forEach(u => {
+            const tr = document.createElement("tr");
+            const isAdm = u.role === "admin";
+            
+            const startDisplay = isAdm ? "مفتوح دائماً" : formatFriendlyDateTime(u.start);
+            const endDisplay = isAdm ? "مفتوح دائماً" : formatFriendlyDateTime(u.end);
+
+            tr.innerHTML = `
+                <td><strong>${escapeHTML(u.username)}</strong></td>
+                <td><strong style="color: #4b5563; font-family: monospace; font-size: 15px;">${escapeHTML(u.password)}</strong></td>
+                <td><span style="color: var(--success); font-weight: bold;">${startDisplay}</span></td>
+                <td><span style="color: var(--danger); font-weight: bold;">${endDisplay}</span></td>
+                <td>
+                    ${!isAdm ? `
+                        <button class="btn-edit" onclick="editUser('${escapeHTML(u.username)}')">تعديل ⚙️</button>
+                        <button class="btn-danger" onclick="deleteUser('${escapeHTML(u.username)}')">حذف ❌</button>
+                    ` : '<span style="color: #9ca3af;">—</span>'}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    /* ---------------------------------------------------- */
+    /*   دوال تحليل المباشرات الأصلية                           */
+    /* ---------------------------------------------------- */
+    function escapeHTML(value) {
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function formatDate(date) {
+        return ((date.getMonth() + 1) + "/" + date.getDate() + "/" + date.getFullYear());
+    }
+
+    function parseDateOnly(dateText) {
+        const parts = dateText.split("/").map(Number);
+        if (parts.length !== 3) return null;
+        return new Date(parts[2], parts[0] - 1, parts[1]);
+    }
+
+    function parseDateTime(dateText, timeText) {
+        const dateParts = dateText.split("/").map(Number);
+        const timeMatch = timeText.trim().match(/^(\d{1,2}):(\d{2})\s*([AP]M)$/i);
+
+        if (dateParts.length !== 3 || !timeMatch) return null;
+
+        let hour = Number(timeMatch[1]);
+        const minute = Number(timeMatch[2]);
+        const period = timeMatch[3].toUpperCase();
+
+        if (period === "PM" && hour !== 12) hour += 12;
+        if (period === "AM" && hour === 12) hour = 0;
+
+        return new Date(dateParts[2], dateParts[0] - 1, dateParts[1], hour, minute, 0, 0);
+    }
+
+    function extractMedicData(line) {
+        let match = line.match(/^\s*\[([^\]]+)\]\s+(.+?)\s+\[[^\]]+\]\s*,/);
+        if (match) return { code: match[1].trim(), name: match[2].trim() };
+        
+        match = line.match(/^\s*\[([^\]]+)\]\s+(.+?)\s*,/);
+        if (match) return { code: match[1].trim(), name: match[2].trim() };
+        return null;
+    }
+
+    function analyze() {
+        const logElement = document.getElementById("log");
+        const resDiv = document.getElementById("res");
+        const text = logElement.value.trim();
+
+        resDiv.innerHTML = "";
+
+        if (!text) {
+            resDiv.innerHTML = `<div class="error-message">يرجى لصق السجلات أولًا ⚠️</div>`;
+            return;
+        }
+
+        const lines = text.split(/\r?\n/);
+        const entries = [];
+        let medicName = "غير معروف";
+        let medicCode = "";
+        let pendingTimestamp = null;
+
+        lines.forEach(rawLine => {
+            const line = rawLine.trim();
+            if (!line) return;
+
+            const medicData = extractMedicData(line);
+            if (medicData && medicName === "غير معروف") {
+                medicName = medicData.name;
+                medicCode = medicData.code;
+            }
+
+            const yesterdayMatch = line.match(/\bYesterday(?:\s+at)?\s+(\d{1,2}:\d{2}\s*[AP]M)\b/i);
+            const fullDateMatch = line.match(/\b(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d{1,2}:\d{2}\s*[AP]M)\b/i);
+
+            if (yesterdayMatch) {
+                const yesterday = new Date();
+                yesterday.setHours(0, 0, 0, 0);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const dateText = formatDate(yesterday);
+                pendingTimestamp = {
+                    date: dateText,
+                    dateTime: parseDateTime(dateText, yesterdayMatch[1])
+                };
+            } else if (fullDateMatch) {
+                pendingTimestamp = {
+                    date: fullDateMatch[1],
+                    dateTime: parseDateTime(fullDateMatch[1], fullDateMatch[2])
+                };
+            }
+
+            if (pendingTimestamp && pendingTimestamp.dateTime && line.includes("تسجيل دخول")) {
+                entries.push({ date: pendingTimestamp.date, dateTime: pendingTimestamp.dateTime, type: "in" });
+                pendingTimestamp = null;
+            } else if (pendingTimestamp && pendingTimestamp.dateTime && line.includes("تسجيل خروج")) {
+                entries.push({ date: pendingTimestamp.date, dateTime: pendingTimestamp.dateTime, type: "out" });
+                pendingTimestamp = null;
+            }
+        });
+
+        if (!entries.length) {
+            resDiv.innerHTML = `<div class="error-message">لم يتم العثور على سجلات دخول أو خروج صالحة ❌</div>`;
+            return;
+        }
+
+        entries.sort((a, b) => a.dateTime - b.dateTime);
+        const daysData = {};
+
+        entries.forEach(entry => {
+            if (!Object.prototype.hasOwnProperty.call(daysData, entry.date)) {
+                daysData[entry.date] = 0;
+            }
+        });
+
+        function addSessionMinutesByDay(loginDateTime, logoutDateTime) {
+            if (!(loginDateTime instanceof Date) || !(logoutDateTime instanceof Date) || logoutDateTime <= loginDateTime) return;
+            let cursor = new Date(loginDateTime);
+
+            while (cursor < logoutDateTime) {
+                const nextMidnight = new Date(cursor);
+                nextMidnight.setHours(24, 0, 0, 0);
+                const segmentEnd = new Date(Math.min(nextMidnight.getTime(), logoutDateTime.getTime()));
+                const dateKey = formatDate(cursor);
+                const segmentMinutes = (segmentEnd - cursor) / (1000 * 60);
+
+                if (!Object.prototype.hasOwnProperty.call(daysData, dateKey)) {
+                    daysData[dateKey] = 0;
+                }
+                daysData[dateKey] += segmentMinutes;
+                cursor = segmentEnd;
+            }
+        }
+
+        let activeLogin = null;
+        entries.forEach(entry => {
+            if (entry.type === "in") {
+                activeLogin = entry;
+                return;
+            }
+            if (entry.type === "out" && activeLogin) {
+                addSessionMinutesByDay(activeLogin.dateTime, entry.dateTime);
+                activeLogin = null;
+            }
+        });
+
+        const sortedDates = Object.keys(daysData).sort((a, b) => parseDateOnly(b) - parseDateOnly(a));
+        let validDaysCount = 0;
+        let htmlOut = "";
+
+        const safeMedicName = escapeHTML(medicName);
+        const safeMedicCode = escapeHTML(medicCode);
+
+        htmlOut += `
+            <div class="medic-card">
+                اسم المسعف: <strong>${safeMedicName}</strong>
+                ${safeMedicCode ? `<span>[${safeMedicCode}]</span>` : ""}
+            </div>
+        `;
+
+        sortedDates.forEach(date => {
+            const completed = daysData[date] >= 60;
+            const safeDate = escapeHTML(date);
+
+            if (completed) {
+                validDaysCount++;
+                htmlOut += `
+                    <div class="status-card ok">
+                        <span>يوم <strong>${safeDate}</strong></span>
+                        <span class="status-text">تمت المباشرة ✅</span>
+                    </div>
+                `;
+            } else {
+                htmlOut += `
+                    <div class="status-card no">
+                        <span>يوم <strong>${safeDate}</strong></span>
+                        <span class="status-text">غير مكتملة ❌</span>
+                    </div>
+                `;
+            }
+        });
+
+        resDiv.innerHTML = `
+            ${htmlOut}
+            <div class="summary">
+                <h2>إجمالي المباشرات: ${validDaysCount} يوم</h2>
+            </div>
+        `;
+    }
+
+    // حماية الصفحة ومنع الفحص
+    document.addEventListener("contextmenu", e => e.preventDefault());
+    document.addEventListener("keydown", e => {
+        const key = e.key.toLowerCase();
+        if ((e.ctrlKey && key === "u") || (e.ctrlKey && e.shiftKey && key === "i") || (e.ctrlKey && e.shiftKey && key === "j") || (e.ctrlKey && key === "s")) {
+            e.preventDefault();
+        }
+    });
+</script>
+</body>
+</html>
