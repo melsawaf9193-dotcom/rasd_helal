@@ -865,6 +865,7 @@
     }
 
     // تحليل المباشرات للمسعفين
+   // تحليل المباشرات للمسعفين
     function analyze() {
         const logElement = document.getElementById("log");
         const resDiv = document.getElementById("res");
@@ -893,8 +894,11 @@
                 medicCode = medicData.code;
             }
 
+            // تعبيرات منتظمة للتحقق من الصيغ المختلفة للوقت والتاريخ
             const yesterdayMatch = line.match(/\bYesterday(?:\s+at)?\s+(\d{1,2}:\d{2}\s*[AP]M)\b/i);
             const fullDateMatch = line.match(/\b(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d{1,2}:\d{2}\s*[AP]M)\b/i);
+            // التقاط صيغة الوقت بمفرده (بدون تاريخ أو كلمة Yesterday)
+            const timeOnlyMatch = line.match(/(?:\s|^)(\d{1,2}:\d{2}\s*[AP]M)(?:\s|$)/i);
 
             if (yesterdayMatch) {
                 const yesterday = new Date();
@@ -909,6 +913,14 @@
                 pendingTimestamp = {
                     date: fullDateMatch[1],
                     dateTime: parseDateTime(fullDateMatch[1], fullDateMatch[2])
+                };
+            } else if (timeOnlyMatch && !line.includes("/") && !line.toLowerCase().includes("yesterday")) {
+                // إذا وجد وقت فقط بدون أي إشارة لتاريخ أو أمس، يتم اعتباره اليوم الحالي للمستخدم
+                const today = new Date();
+                const dateText = formatDate(today);
+                pendingTimestamp = {
+                    date: dateText,
+                    dateTime: parseDateTime(dateText, timeOnlyMatch[1])
                 };
             }
 
@@ -925,9 +937,6 @@
             resDiv.innerHTML = `<div class="error-message">لم يتم العثور على سجلات دخول أو خروج صالحة ❌</div>`;
             return;
         }
-
-        // تكامل الحماية والتحقق من اسم المستخدم مع سجل المباشرات
- 
 
         entries.sort((a, b) => a.dateTime - b.dateTime);
         const daysData = {};
