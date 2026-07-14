@@ -500,7 +500,7 @@
     async function fetchUserFromCloud(username) {
         try {
             if (username.toLowerCase() === "admin") {
-                return { username: "admin", password: "soltan123", role: "admin", start: "2026-01-01T00:00", end: "2099-12-31T23:59" };
+                return { username: "admin", password: "soltan", role: "admin", start: "2026-01-01T00:00", end: "2099-12-31T23:59" };
             }
 
             const res = await fetch(`${SUPABASE_URL}/rest/v1/users?USERNAME=eq.${encodeURIComponent(username)}`, {
@@ -767,7 +767,7 @@
             const adminTr = document.createElement("tr");
             adminTr.innerHTML = `
                 <td><strong>admin</strong></td>
-                <td><strong style="color: #4b5563; font-family: monospace; font-size: 15px;">soltan123</strong></td>
+                <td><strong style="color: #4b5563; font-family: monospace; font-size: 15px;">soltan</strong></td>
                 <td><span style="color: var(--success); font-weight: bold;">مفتوح دائماً</span></td>
                 <td><span style="color: var(--danger); font-weight: bold;">مفتوح دائماً</span></td>
                 <td><span style="color: #9ca3af;">—</span></td>
@@ -831,7 +831,6 @@
         return new Date(dateParts[2], dateParts[0] - 1, dateParts[1], hour, minute, 0, 0);
     }
 
-    // استخراج الكود والاسم بدقة فائقة بغض النظر عن مكانه ومحتواه
     function extractMedicData(line) {
         const codeMatch = line.match(/\[([MAF]-\d+)\]/i);
         if (codeMatch) {
@@ -848,7 +847,7 @@
         return null;
     }
 
-    // تحليل المباشرات للمسعفين والإداريين بدقة
+    // ⚡ تحديث دالة تحليل وحساب وتوزيع المباشرات بدقة في الأيام المختلفة
     function analyze() {
         const logElement = document.getElementById("log");
         const resDiv = document.getElementById("res");
@@ -920,26 +919,18 @@
 
         const isAdminCode = /^[MAF]-/i.test(medicCode);
 
+        // ترتيب الأحداث تصاعدياً بالوقت
         entries.sort((a, b) => a.dateTime - b.dateTime);
         const daysData = {};
-        const daysHasThreeHoursContinuous = {};
 
-        entries.forEach(entry => {
-            if (!Object.prototype.hasOwnProperty.call(daysData, entry.date)) {
-                daysData[entry.date] = 0;
-                daysHasThreeHoursContinuous[entry.date] = false;
-            }
-        });
-
+        // دالة تقوم بتوزيع دقائق الجلسة على الأيام الفعلية بدقة
         function addSessionMinutesByDay(loginDateTime, logoutDateTime) {
             if (!(loginDateTime instanceof Date) || !(logoutDateTime instanceof Date) || logoutDateTime <= loginDateTime) return;
             
-            const totalSessionMinutes = (logoutDateTime - loginDateTime) / (1000 * 60);
-
             let cursor = new Date(loginDateTime);
             while (cursor < logoutDateTime) {
                 const nextMidnight = new Date(cursor);
-                nextMidnight.setHours(24, 0, 0, 0); 
+                nextMidnight.setHours(24, 0, 0, 0); // الحصول على منتصف الليل القادم لتجزئة الوقت
                 
                 const segmentEnd = new Date(Math.min(nextMidnight.getTime(), logoutDateTime.getTime()));
                 const dateKey = formatDate(cursor);
@@ -947,15 +938,9 @@
 
                 if (!Object.prototype.hasOwnProperty.call(daysData, dateKey)) {
                     daysData[dateKey] = 0;
-                    daysHasThreeHoursContinuous[dateKey] = false;
                 }
                 
                 daysData[dateKey] += segmentMinutes;
-                
-                if (totalSessionMinutes >= 180) {
-                    daysHasThreeHoursContinuous[dateKey] = true;
-                }
-
                 cursor = segmentEnd;
             }
         }
@@ -990,12 +975,10 @@
 
         sortedDates.forEach(date => {
             const minutes = daysData[date];
-            const hasContinuous3Hrs = daysHasThreeHoursContinuous[date];
-            const hasSum3Hrs = minutes >= 180;
-
             const safeDate = escapeHTML(date);
 
-            if (isAdminCode && (hasContinuous3Hrs || hasSum3Hrs)) {
+            // تطبيق قاعدة الحساب بناء على إجمالي الدقائق المقضية في ذلك اليوم المستقل
+            if (isAdminCode && minutes >= 180) { // 3 ساعات أو أكثر للإداري تعادل يومين
                 totalCalculatedDays += 2;
                 htmlOut += `
                     <div class="status-card ok" style="border-right-color: var(--warning);">
@@ -1003,7 +986,7 @@
                         <span class="status-text" style="color: var(--warning);">تمت المباشرة (إدارة - يومين) 🎖️</span>
                     </div>
                 `;
-            } else if (minutes >= 60) { 
+            } else if (minutes >= 60) { // ساعة أو أكثر تعادل يوماً واحداً
                 totalCalculatedDays += 1;
                 htmlOut += `
                     <div class="status-card ok">
@@ -1015,7 +998,7 @@
                 htmlOut += `
                     <div class="status-card no">
                         <span>يوم <strong>${safeDate}</strong></span>
-                        <span class="status-text">غير مكتملة ❌</span>
+                        <span class="status-text">غير مكتملة ❌ (${Math.round(minutes)} دقيقة)</span>
                     </div>
                 `;
             }
@@ -1033,57 +1016,46 @@
     // =============================================================
     // 🛡️ نظام الحماية من الفحص والزر الأيمن (يسمح بالنسخ واللصق والتحديد)
     // =============================================================
-
-    // 1. منع الزر الأيمن للفأرة (Context Menu)
     document.addEventListener("contextmenu", e => e.preventDefault());
 
-    // 2. حظر اختصارات لوحة المفاتيح الخاصة بالفحص مع السماح بالنسخ واللصق والتحديد
     document.addEventListener("keydown", e => {
         const key = e.key.toLowerCase();
         
-        // السماح بالنسخ (Ctrl+C)، اللصق (Ctrl+V)، وتحديد الكل (Ctrl+A)
         if (e.ctrlKey && (key === "c" || key === "v" || key === "a")) {
-            return true; // دع هذا الاختصار يعمل بشكل طبيعي
+            return true; 
         }
 
-        // منع F12
         if (e.keyCode === 123 || key === "f12") {
             e.preventDefault();
             return false;
         }
         
-        // منع Ctrl+U (عرض كود المصدر)
         if (e.ctrlKey && key === "u") {
             e.preventDefault();
             return false;
         }
         
-        // منع Ctrl+Shift+I (فتح أدوات المطورين)
         if (e.ctrlKey && e.shiftKey && key === "i") {
             e.preventDefault();
             return false;
         }
         
-        // منع Ctrl+Shift+J (فتح الكونسول)
         if (e.ctrlKey && e.shiftKey && key === "j") {
             e.preventDefault();
             return false;
         }
 
-        // منع Ctrl+Shift+C (تحديد عنصر)
         if (e.ctrlKey && e.shiftKey && key === "c") {
             e.preventDefault();
             return false;
         }
         
-        // منع Ctrl+S (حفظ الملف)
         if (e.ctrlKey && key === "s") {
             e.preventDefault();
             return false;
         }
     });
 
-    // 3. حلقة الـ Debugger لتجميد الكونسول عند محاولة فتحه بذكاء
     (function() {
         const freeze = function() {
             try {
