@@ -927,20 +927,7 @@
         }
 
         // تكامل الحماية والتحقق من اسم المستخدم مع سجل المباشرات
-        if (currentUser && currentUser.role !== "admin") {
-            const userLoginCode = currentUser.username.toLowerCase();
-            const logCode = medicCode.toLowerCase();
-            
-            if (userLoginCode !== logCode) {
-                resDiv.innerHTML = `
-                    <div class="error-message">
-                        ⚠️ خطأ في التحقق من الهوية!<br>
-                        أنت مسجل دخول بحساب <strong>[${escapeHTML(currentUser.username)}]</strong> <br>
-                        بينما السجلات الملصقة تخص المسعف صاحب الكود <strong>[${escapeHTML(medicCode || "غير معروف")}]</strong>.
-                    </div>`;
-                return;
-            }
-        }
+ 
 
         entries.sort((a, b) => a.dateTime - b.dateTime);
         const daysData = {};
