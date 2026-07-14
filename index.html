@@ -32,7 +32,7 @@
 
         .container {
             width: 100%;
-            max-width: 1000px; /* زيادة العرض لاستيعاب التواريخ الدقيقة */
+            max-width: 1000px;
             margin: auto;
             padding: 30px;
             background: rgba(255, 255, 255, 0.96);
@@ -299,7 +299,7 @@
 <div class="container">
     <div class="header">
         <h1>نظام مراقبة المباشرة | الهلال الأحمر</h1>
-        <p>بوابة المراقبة والتحكم في دفاتر الحضور</p>
+        <p>بوابة المراقبة والتحكم في دفاتر الحضور السحابية</p>
     </div>
 
     <!-- 1️⃣ شاشة تسجيل الدخول -->
@@ -308,8 +308,8 @@
         <div id="login-error" class="error-message" style="display: none; margin-bottom: 15px;"></div>
         
         <div class="form-group">
-            <label>اسم المستخدم</label>
-            <input type="text" id="username" placeholder="أدخل اسم المستخدم...">
+            <label>اسم المستخدم (كود المسعف)</label>
+            <input type="text" id="username" placeholder="أدخل كود المسعف... مثال: E-854">
         </div>
         <div class="form-group">
             <label>كلمة المرور</label>
@@ -325,11 +325,9 @@
             <button class="btn-danger" style="margin-top: 0;" onclick="logout()">خروج</button>
         </div>
 
-        <!-- حقول إضافة وتعديل الأعضاء -->
         <div style="background: #f9fafb; padding: 20px; border-radius: 12px; border: 1px dashed #ccc; margin-bottom: 30px;">
-            <h3 id="form-title" style="margin-top: 0; border-bottom: 2px solid var(--main); padding-bottom: 8px; color: #333;">إنشاء حساب عضو جديد</h3>
+            <h3 id="form-title" style="margin-top: 0; border-bottom: 2px solid var(--main); padding-bottom: 8px; color: #333;">إنشاء حساب عضو جديد سحابياً</h3>
             
-            <!-- حقل خفي لتخزين اسم المستخدم الجاري تعديله لمعرفته برمجياً -->
             <input type="hidden" id="editing-user-id" value="">
 
             <div class="form-row">
@@ -354,11 +352,11 @@
                 </div>
             </div>
 
-            <button type="button" id="submit-btn" onclick="createUser()">إضافة العضو وتحديد الصلاحية</button>
+            <button type="button" id="submit-btn" onclick="createUser()">إضافة العضو وتحديد الصلاحية سحابياً</button>
             <button type="button" id="cancel-edit-btn" class="btn-secondary" style="display: none; margin-top: 10px;" onclick="cancelEdit()">إلغاء التعديل والعودة للإضافة</button>
         </div>
 
-        <h3 style="border-bottom: 2px solid var(--main); padding-bottom: 8px;">قائمة الأعضاء المسجلين والتحكم ببياناتهم</h3>
+        <h3 style="border-bottom: 2px solid var(--main); padding-bottom: 8px;">قائمة الأعضاء المسجلين في السحابة والتحكم بها</h3>
         <div style="overflow-x: auto;">
             <table class="user-table">
                 <thead>
@@ -371,7 +369,7 @@
                     </tr>
                 </thead>
                 <tbody id="user-list-tbody">
-                    <!-- تظهر هنا البيانات والتحكم من خلال الـ JavaScript -->
+                    <tr><td colspan="5" style="text-align: center; color: #777;">جاري جلب قائمة الأعضاء من السيرفر السحابي...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -380,7 +378,7 @@
     <!-- 3️⃣ لوحة المستخدم العادي (المسعف) -->
     <div id="user-section" class="user-section">
         <div class="nav-bar">
-            <span>مرحباً بالمسعف: <strong id="logged-user-display"></strong></span>
+            <span>مرحباً بالمسعف: <strong id="logged-user-display" style="color: var(--main)"></strong></span>
             <span id="user-time-badge" class="badge badge-admin" style="font-size: 11px;"></span>
             <button class="btn-danger" style="margin-top: 0;" onclick="logout()">خروج</button>
         </div>
@@ -392,7 +390,13 @@
 </div>
 
 <script>
-    // الحصول على تاريخ ووقت منسقين كافتراضي للحقول الجديدة (البداية الآن، النهاية بعد 24 ساعة)
+    // -------------------------------------------------------------
+    // روابط ومفاتيح السيرفر السحابي (Supabase)
+    // -------------------------------------------------------------
+    const SUPABASE_URL = "https://qeriuqxfvchshswuvvdn.supabase.co"; 
+    const SUPABASE_KEY = "sb_publishable_17NpDurHY5aD8HPL8XHlxg_Di23kRkh"; 
+
+    // إعدادات افتراضية للوقت
     function getDefaultStartDateTime() {
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -401,25 +405,18 @@
 
     function getDefaultEndDateTime() {
         const future = new Date();
-        future.setDate(future.getDate() + 1); // غداً تلقائياً
+        future.setDate(future.getDate() + 1);
         future.setMinutes(future.getMinutes() - future.getTimezoneOffset());
         return future.toISOString().slice(0, 16);
     }
 
-    // تعيين القيم الافتراضية
     document.getElementById("start-datetime").value = getDefaultStartDateTime();
     document.getElementById("end-datetime").value = getDefaultEndDateTime();
 
-    // قاعدة بيانات الحسابات الافتراضية
-    const DEFAULT_USERS = [
-        { username: "admin", password: "soltan", role: "admin", start: "2026-01-01T00:00", end: "2099-12-31T23:59" }
-    ];
-
-    let users = JSON.parse(localStorage.getItem("red_crescent_users")) || DEFAULT_USERS;
     let currentUser = JSON.parse(sessionStorage.getItem("active_user")) || null;
     let autoKickInterval = null;
 
-    // دالة لتنسيق التاريخ والوقت لعرض مريح للعين
+    // دالة لتنسيق التواريخ للعرض بشكل مريح للعين
     function formatFriendlyDateTime(dtStr) {
         if (!dtStr) return "غير محدد";
         const dt = new Date(dtStr);
@@ -433,16 +430,12 @@
         const minutes = String(dt.getMinutes()).padStart(2, '0');
         const ampm = hours >= 12 ? 'PM' : 'AM';
         hours = hours % 12;
-        hours = hours ? hours : 12; // الساعة 12
+        hours = hours ? hours : 12;
         
         return `${year}/${month}/${day} - ${hours}:${minutes} ${ampm}`;
     }
 
-    function saveUsers() {
-        localStorage.setItem("red_crescent_users", JSON.stringify(users));
-    }
-
-    // فحص هل الوقت الحالي يقع بدقة تامة بين تاريخ ووقت البداية والنهاية؟
+    // التحقق من صلاحية الوقت للمستخدم
     function isWithinAllowedTime(user) {
         if (user.role === "admin") return true;
         if (!user.start || !user.end) return false;
@@ -454,8 +447,8 @@
         return now >= start && now <= end;
     }
 
-    // عند تحميل الصفحة
-    window.addEventListener("DOMContentLoaded", () => {
+    // تشغيل العمليات عند فتح الصفحة
+    window.addEventListener("DOMContentLoaded", async () => {
         const kickReason = sessionStorage.getItem("kick_reason");
         const errorDiv = document.getElementById("login-error");
 
@@ -466,11 +459,13 @@
         }
 
         if (currentUser) {
-            const freshUser = users.find(u => u.username.toLowerCase() === currentUser.username.toLowerCase());
+            // جلب بيانات دقيقة للمستخدم المسجل حالياً من السيرفر السحابي
+            const freshUser = await fetchUserFromCloud(currentUser.username);
+            
             if (freshUser && freshUser.role === "admin") {
                 document.getElementById("auth-section").classList.remove("active");
                 document.getElementById("admin-section").classList.add("active");
-                renderUserList();
+                await renderUserList();
             } else if (freshUser && isWithinAllowedTime(freshUser)) {
                 currentUser = freshUser;
                 document.getElementById("auth-section").classList.remove("active");
@@ -485,13 +480,13 @@
         }
     });
 
-    // فحص الخروج التلقائي الدقيق
+    // مؤقت فحص الحظر أو انتهاء الوقت كل 5 ثوانٍ تلقائياً
     function startAutoKickTimer() {
         if (autoKickInterval) clearInterval(autoKickInterval);
         
-        autoKickInterval = setInterval(() => {
+        autoKickInterval = setInterval(async () => {
             if (currentUser && currentUser.role !== "admin") {
-                const freshUser = users.find(u => u.username.toLowerCase() === currentUser.username.toLowerCase());
+                const freshUser = await fetchUserFromCloud(currentUser.username);
                 
                 if (!freshUser || !isWithinAllowedTime(freshUser)) {
                     sessionStorage.removeItem("active_user");
@@ -500,21 +495,66 @@
                     window.location.reload();
                 }
             }
-        }, 5000); // يفحص كل 5 ثوانٍ بدقة تامة
+        }, 5000);
     }
 
-    // تسجيل الدخول
-    function handleLogin() {
+    // -------------------------------------------------------------
+    // جلب مستخدم واحد من السحاب (Supabase API)
+    // -------------------------------------------------------------
+    async function fetchUserFromCloud(username) {
+        try {
+            // الحساب الإداري الافتراضي لضمان تشغيل النظام بدون إنترنت عند الحاجة
+            if (username.toLowerCase() === "admin") {
+                return { username: "admin", password: "soltan", role: "admin", start: "2026-01-01T00:00", end: "2099-12-31T23:59" };
+            }
+
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/users?USERNAME=eq.${encodeURIComponent(username)}`, {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`
+                }
+            });
+
+            if (!res.ok) return null;
+            const data = await res.json();
+            if (data && data.length > 0) {
+                const cloudUser = data[0];
+                return {
+                    username: cloudUser.USERNAME,
+                    password: cloudUser.PASSWORD,
+                    role: "user",
+                    start: `${cloudUser.START_DATE}T${cloudUser.START_TIME || '00:00'}`,
+                    end: `${cloudUser.END_DATE}T${cloudUser.END_TIME || '00:00'}`
+                };
+            }
+            return null;
+        } catch (e) {
+            console.error("خطأ جلب البيانات:", e);
+            return null;
+        }
+    }
+
+    // -------------------------------------------------------------
+    // تسجيل الدخول بالاتصال بالـ API
+    // -------------------------------------------------------------
+    async function handleLogin() {
         const userInp = document.getElementById("username").value.trim();
         const passInp = document.getElementById("password").value;
         const errorDiv = document.getElementById("login-error");
 
         errorDiv.style.display = "none";
 
-        const foundUser = users.find(u => u.username.toLowerCase() === userInp.toLowerCase() && u.password === passInp);
+        if (!userInp || !passInp) {
+            errorDiv.innerText = "❌ يرجى إدخال اسم المستخدم وكلمة المرور!";
+            errorDiv.style.display = "block";
+            return;
+        }
 
-        if (!foundUser) {
-            errorDiv.innerText = "❌ اسم المستخدم أو كلمة المرور غير صحيحة!";
+        // جلب المستخدم من السيرفر السحابي مباشرة
+        const foundUser = await fetchUserFromCloud(userInp);
+
+        if (!foundUser || foundUser.password !== passInp) {
+            errorDiv.innerText = "❌ اسم المستخدم أو كلمة المرور غير صحيحة سحابياً!";
             errorDiv.style.display = "block";
             return;
         }
@@ -531,7 +571,7 @@
 
         if (currentUser.role === "admin") {
             document.getElementById("admin-section").classList.add("active");
-            renderUserList();
+            await renderUserList();
         } else {
             document.getElementById("logged-user-display").innerText = currentUser.username;
             document.getElementById("user-time-badge").innerText = `صلاحية نوبتك من: [ ${formatFriendlyDateTime(currentUser.start)} ] إلى [ ${formatFriendlyDateTime(currentUser.end)} ]`;
@@ -540,7 +580,6 @@
         }
     }
 
-    // تسجيل الخروج
     function logout() {
         currentUser = null;
         sessionStorage.removeItem("active_user");
@@ -554,8 +593,10 @@
         document.getElementById("log").value = "";
     }
 
-    // إنشاء مستخدم جديد أو حفظ تعديل مستخدم قائم
-    function createUser() {
+    // -------------------------------------------------------------
+    // حفظ العضو أو تعديله سحابياً (Supabase API POST/PATCH)
+    // -------------------------------------------------------------
+    async function createUser() {
         const usernameInp = document.getElementById("new-user").value.trim();
         const passwordInp = document.getElementById("new-pass").value;
         const startVal = document.getElementById("start-datetime").value;
@@ -563,7 +604,7 @@
         const editingId = document.getElementById("editing-user-id").value;
 
         if (!usernameInp || !passwordInp || !startVal || !endVal) {
-            alert("⚠️ يرجى ملء حقول الاسم والرقم السري وتحديد تواريخ وأوقات البداية والنهاية بشكل كامل!");
+            alert("⚠️ يرجى ملء كافة الحقول وتحديد التواريخ والأوقات!");
             return;
         }
 
@@ -571,70 +612,145 @@
         const endDateObj = new Date(endVal);
 
         if (endDateObj <= startDateObj) {
-            alert("⚠️ خطأ: يجب أن يكون تاريخ ووقت نهاية النوبة بعد تاريخ ووقت البداية!");
+            alert("⚠️ خطأ: يجب أن يكون وقت نهاية النوبة بعد وقت البداية!");
             return;
         }
 
-        if (editingId) {
-            // حفظ التعديلات
-            const index = users.findIndex(u => u.username.toLowerCase() === editingId.toLowerCase());
-            if (index !== -1) {
-                users[index].password = passwordInp;
-                users[index].start = startVal;
-                users[index].end = endVal;
-                alert(`✅ تم تعديل بيانات صلاحية العضو [${editingId}] بنجاح!`);
-            }
-            cancelEdit();
-        } else {
-            // إضافة جديد
-            if (users.some(u => u.username.toLowerCase() === usernameInp.toLowerCase())) {
-                alert("⚠️ اسم هذا العضو مسجل مسبقاً في النظام!");
-                return;
+        // فصل التاريخ عن الوقت لإرساله بالأعمدة المطابقة تماماً لطلبك
+        const startDate = startVal.slice(0, 10); // YYYY-MM-DD
+        const startTime = startVal.slice(11, 16) + ":00"; // HH:MM:SS
+        const endDate = endVal.slice(0, 10);
+        const endTime = endVal.slice(11, 16) + ":00";
+
+        try {
+            if (editingId) {
+                // تعديل في السحاب (PATCH)
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/users?USERNAME=eq.${encodeURIComponent(editingId)}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        PASSWORD: passwordInp,
+                        START_DATE: startDate,
+                        START_TIME: startTime,
+                        END_DATE: endDate,
+                        END_TIME: endTime
+                    })
+                });
+
+                if (res.ok) {
+                    alert(`✅ تم تعديل بيانات صلاحية العضو [${editingId}] بنجاح في السيرفر السحابي!`);
+                } else {
+                    alert("❌ حدث خطأ أثناء محاولة تعديل البيانات في السيرفر.");
+                    return;
+                }
+                cancelEdit();
+            } else {
+                // التحقق من تكرار المستخدم سحابياً أولاً
+                const existing = await fetchUserFromCloud(usernameInp);
+                if (existing) {
+                    alert("⚠️ اسم هذا العضو مسجل مسبقاً في قاعدة البيانات السحابية!");
+                    return;
+                }
+
+                // إضافة مستخدم جديد (POST)
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        USERNAME: usernameInp,
+                        PASSWORD: passwordInp,
+                        START_DATE: startDate,
+                        START_TIME: startTime,
+                        END_DATE: endDate,
+                        END_TIME: endTime
+                    })
+                });
+
+                if (res.ok) {
+                    alert(`✅ تم حفظ اليوزر [${usernameInp}] وتاريخ الصلاحية بنجاح في السيرفر السحابي!`);
+                } else {
+                    alert("❌ فشل حفظ البيانات في السيرفر، يرجى التحقق من الشبكة.");
+                    return;
+                }
             }
 
-            users.push({
-                username: usernameInp,
-                password: passwordInp,
-                role: "user",
-                start: startVal,
-                end: endVal
-            });
+            await renderUserList();
 
-            alert(`✅ تمت إضافة العضو [${usernameInp}] بنجاح وتحديد النوبة بدقة.`);
+            document.getElementById("new-user").value = "";
+            document.getElementById("new-pass").value = "";
+            document.getElementById("start-datetime").value = getDefaultStartDateTime();
+            document.getElementById("end-datetime").value = getDefaultEndDateTime();
+        } catch (err) {
+            console.error(err);
+            alert("❌ حدث خطأ غير متوقع في الاتصال بقاعدة البيانات السحابية.");
         }
-
-        saveUsers();
-        renderUserList();
-
-        // إعادة تصفير الحقول للوضع الافتراضي
-        document.getElementById("new-user").value = "";
-        document.getElementById("new-pass").value = "";
-        document.getElementById("start-datetime").value = getDefaultStartDateTime();
-        document.getElementById("end-datetime").value = getDefaultEndDateTime();
     }
 
-    // تعبئة البيانات في الفورم للتعديل
-    function editUser(username) {
-        const user = users.find(u => u.username === username);
+    // -------------------------------------------------------------
+    // حذف مستخدم من السيرفر السحابي (DELETE)
+    // -------------------------------------------------------------
+    async function deleteUser(username) {
+        if (username === "admin") {
+            alert("❌ لا يمكن حذف الحساب الإداري الرئيسي!");
+            return;
+        }
+        if (confirm(`هل تريد بالتأكيد حذف حساب العضو [${username}] نهائياً من السيرفر السحابي؟`)) {
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/users?USERNAME=eq.${encodeURIComponent(username)}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+
+                if (res.ok) {
+                    alert(`✅ تم حذف العضو [${username}] بنجاح من السحابة.`);
+                    await renderUserList();
+                    if (document.getElementById("editing-user-id").value === username) {
+                        cancelEdit();
+                    }
+                } else {
+                    alert("❌ فشل حذف العضو من قاعدة البيانات.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("❌ خطأ بالاتصال أثناء محاولة الحذف.");
+            }
+        }
+    }
+
+    // ملء بيانات التعديل في لوحة التحكم
+    async function editUser(username) {
+        const user = await fetchUserFromCloud(username);
         if (!user) return;
 
         document.getElementById("form-title").innerText = `⚙️ تعديل صلاحية العضو: ${user.username}`;
         document.getElementById("editing-user-id").value = user.username;
 
         document.getElementById("new-user").value = user.username;
-        document.getElementById("new-user").disabled = true; // قفل الاسم للحماية
+        document.getElementById("new-user").disabled = true;
         
         document.getElementById("new-pass").value = user.password;
         document.getElementById("start-datetime").value = user.start;
         document.getElementById("end-datetime").value = user.end;
 
-        document.getElementById("submit-btn").innerText = "حفظ التعديلات الزمنية ✅";
+        document.getElementById("submit-btn").innerText = "حفظ التعديلات الزمنية سحابياً ✅";
         document.getElementById("cancel-edit-btn").style.display = "block";
     }
 
-    // إلغاء التعديل
     function cancelEdit() {
-        document.getElementById("form-title").innerText = "إنشاء حساب عضو جديد";
+        document.getElementById("form-title").innerText = "إنشاء حساب عضو جديد سحابياً";
         document.getElementById("editing-user-id").value = "";
         
         document.getElementById("new-user").value = "";
@@ -644,57 +760,66 @@
         document.getElementById("start-datetime").value = getDefaultStartDateTime();
         document.getElementById("end-datetime").value = getDefaultEndDateTime();
 
-        document.getElementById("submit-btn").innerText = "إضافة العضو وتحديد الصلاحية";
+        document.getElementById("submit-btn").innerText = "إضافة العضو وتحديد الصلاحية سحابياً";
         document.getElementById("cancel-edit-btn").style.display = "none";
     }
 
-    // حذف عضو
-    function deleteUser(username) {
-        if (username === "admin") {
-            alert("❌ لا يمكن حذف الحساب الإداري الرئيسي!");
-            return;
-        }
-        if (confirm(`هل تريد بالتأكيد حذف حساب العضو [${username}] نهائياً من النظام؟`)) {
-            users = users.filter(u => u.username !== username);
-            saveUsers();
-            renderUserList();
-            if (document.getElementById("editing-user-id").value === username) {
-                cancelEdit();
-            }
-        }
-    }
-
-    // عرض جدول الأعضاء
-    function renderUserList() {
+    // -------------------------------------------------------------
+    // جلب كافة المستخدمين وعرضهم في الجدول من السيرفر السحابي
+    // -------------------------------------------------------------
+    async function renderUserList() {
         const tbody = document.getElementById("user-list-tbody");
-        tbody.innerHTML = "";
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #777;">جاري التحديث من السيرفر...</td></tr>`;
 
-        users.forEach(u => {
-            const tr = document.createElement("tr");
-            const isAdm = u.role === "admin";
-            
-            const startDisplay = isAdm ? "مفتوح دائماً" : formatFriendlyDateTime(u.start);
-            const endDisplay = isAdm ? "مفتوح دائماً" : formatFriendlyDateTime(u.end);
+        try {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`
+                }
+            });
 
-            tr.innerHTML = `
-                <td><strong>${escapeHTML(u.username)}</strong></td>
-                <td><strong style="color: #4b5563; font-family: monospace; font-size: 15px;">${escapeHTML(u.password)}</strong></td>
-                <td><span style="color: var(--success); font-weight: bold;">${startDisplay}</span></td>
-                <td><span style="color: var(--danger); font-weight: bold;">${endDisplay}</span></td>
-                <td>
-                    ${!isAdm ? `
-                        <button class="btn-edit" onclick="editUser('${escapeHTML(u.username)}')">تعديل ⚙️</button>
-                        <button class="btn-danger" onclick="deleteUser('${escapeHTML(u.username)}')">حذف ❌</button>
-                    ` : '<span style="color: #9ca3af;">—</span>'}
-                </td>
+            if (!res.ok) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger);">فشل تحديث القائمة من السيرفر السحابي.</td></tr>`;
+                return;
+            }
+
+            const cloudUsers = await res.json();
+            tbody.innerHTML = "";
+
+            // الحساب الإداري المحلي الثابت دائماً يعرض في الأعلى
+            const adminTr = document.createElement("tr");
+            adminTr.innerHTML = `
+                <td><strong>admin</strong></td>
+                <td><strong style="color: #4b5563; font-family: monospace; font-size: 15px;">soltan123</strong></td>
+                <td><span style="color: var(--success); font-weight: bold;">مفتوح دائماً</span></td>
+                <td><span style="color: var(--danger); font-weight: bold;">مفتوح دائماً</span></td>
+                <td><span style="color: #9ca3af;">—</span></td>
             `;
-            tbody.appendChild(tr);
-        });
+            tbody.appendChild(adminTr);
+
+            cloudUsers.forEach(u => {
+                const tr = document.createElement("tr");
+                const fullStart = `${u.START_DATE}T${u.START_TIME || '00:00'}`;
+                const fullEnd = `${u.END_DATE}T${u.END_TIME || '00:00'}`;
+
+                tr.innerHTML = `
+                    <td><strong>${escapeHTML(u.USERNAME)}</strong></td>
+                    <td><strong style="color: #4b5563; font-family: monospace; font-size: 15px;">${escapeHTML(u.PASSWORD)}</strong></td>
+                    <td><span style="color: var(--success); font-weight: bold;">${formatFriendlyDateTime(fullStart)}</span></td>
+                    <td><span style="color: var(--danger); font-weight: bold;">${formatFriendlyDateTime(fullEnd)}</span></td>
+                    <td>
+                        <button class="btn-edit" onclick="editUser('${escapeHTML(u.USERNAME)}')">تعديل ⚙️</button>
+                        <button class="btn-danger" onclick="deleteUser('${escapeHTML(u.USERNAME)}')">حذف ❌</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger);">حدث خطأ أثناء تحميل البيانات من السحابة.</td></tr>`;
+        }
     }
 
-    /* ---------------------------------------------------- */
-    /*   دوال تحليل المباشرات الأصلية                           */
-    /* ---------------------------------------------------- */
     function escapeHTML(value) {
         return String(value)
             .replaceAll("&", "&amp;")
@@ -739,6 +864,7 @@
         return null;
     }
 
+    // تحليل المباشرات للمسعفين
     function analyze() {
         const logElement = document.getElementById("log");
         const resDiv = document.getElementById("res");
@@ -798,6 +924,22 @@
         if (!entries.length) {
             resDiv.innerHTML = `<div class="error-message">لم يتم العثور على سجلات دخول أو خروج صالحة ❌</div>`;
             return;
+        }
+
+        // تكامل الحماية والتحقق من اسم المستخدم مع سجل المباشرات
+        if (currentUser && currentUser.role !== "admin") {
+            const userLoginCode = currentUser.username.toLowerCase();
+            const logCode = medicCode.toLowerCase();
+            
+            if (userLoginCode !== logCode) {
+                resDiv.innerHTML = `
+                    <div class="error-message">
+                        ⚠️ خطأ في التحقق من الهوية!<br>
+                        أنت مسجل دخول بحساب <strong>[${escapeHTML(currentUser.username)}]</strong> <br>
+                        بينما السجلات الملصقة تخص المسعف صاحب الكود <strong>[${escapeHTML(medicCode || "غير معروف")}]</strong>.
+                    </div>`;
+                return;
+            }
         }
 
         entries.sort((a, b) => a.dateTime - b.dateTime);
@@ -876,22 +1018,15 @@
             }
         });
 
-        resDiv.innerHTML = `
-            ${htmlOut}
+        htmlOut += `
             <div class="summary">
-                <h2>إجمالي المباشرات: ${validDaysCount} يوم</h2>
+                <h2>إجمالي الأيام المستوفية للشروط (ساعة أو أكثر): ${validDaysCount} يوم</h2>
             </div>
         `;
-    }
 
-    // حماية الصفحة ومنع الفحص
-    document.addEventListener("contextmenu", e => e.preventDefault());
-    document.addEventListener("keydown", e => {
-        const key = e.key.toLowerCase();
-        if ((e.ctrlKey && key === "u") || (e.ctrlKey && e.shiftKey && key === "i") || (e.ctrlKey && e.shiftKey && key === "j") || (e.ctrlKey && key === "s")) {
-            e.preventDefault();
-        }
-    });
+        resDiv.innerHTML = htmlOut;
+    }
 </script>
+
 </body>
 </html>
