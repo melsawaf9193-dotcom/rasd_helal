@@ -500,7 +500,7 @@
     async function fetchUserFromCloud(username) {
         try {
             if (username.toLowerCase() === "admin") {
-                return { username: "admin", password: "soltan", role: "admin", start: "2026-01-01T00:00", end: "2099-12-31T23:59" };
+                return { username: "admin", password: "soltan123", role: "admin", start: "2026-01-01T00:00", end: "2099-12-31T23:59" };
             }
 
             const res = await fetch(`${SUPABASE_URL}/rest/v1/users?USERNAME=eq.${encodeURIComponent(username)}`, {
@@ -767,7 +767,7 @@
             const adminTr = document.createElement("tr");
             adminTr.innerHTML = `
                 <td><strong>admin</strong></td>
-                <td><strong style="color: #4b5563; font-family: monospace; font-size: 15px;">soltan</strong></td>
+                <td><strong style="color: #4b5563; font-family: monospace; font-size: 15px;">soltan123</strong></td>
                 <td><span style="color: var(--success); font-weight: bold;">مفتوح دائماً</span></td>
                 <td><span style="color: var(--danger); font-weight: bold;">مفتوح دائماً</span></td>
                 <td><span style="color: #9ca3af;">—</span></td>
