@@ -28,6 +28,11 @@
             min-height: 100vh;
             margin: 0;
             padding: 40px 20px;
+            /* منع تحديد النصوص في الصفحة كإجراء حماية إضافي */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
 
         .container {
@@ -104,6 +109,11 @@
             line-height: 1.8;
             resize: vertical;
             transition: 0.3s;
+            /* السماح بتحديد النص داخل صندوق المباشرات فقط لتسهيل العمل للمستخدم */
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
         }
 
         button {
@@ -459,7 +469,6 @@
         }
 
         if (currentUser) {
-            // جلب بيانات دقيقة للمستخدم المسجل حالياً من السيرفر السحابي
             const freshUser = await fetchUserFromCloud(currentUser.username);
             
             if (freshUser && freshUser.role === "admin") {
@@ -498,12 +507,8 @@
         }, 5000);
     }
 
-    // -------------------------------------------------------------
-    // جلب مستخدم واحد من السحاب (Supabase API)
-    // -------------------------------------------------------------
     async function fetchUserFromCloud(username) {
         try {
-            // الحساب الإداري الافتراضي لضمان تشغيل النظام بدون إنترنت عند الحاجة
             if (username.toLowerCase() === "admin") {
                 return { username: "admin", password: "soltan", role: "admin", start: "2026-01-01T00:00", end: "2099-12-31T23:59" };
             }
@@ -534,9 +539,6 @@
         }
     }
 
-    // -------------------------------------------------------------
-    // تسجيل الدخول بالاتصال بالـ API
-    // -------------------------------------------------------------
     async function handleLogin() {
         const userInp = document.getElementById("username").value.trim();
         const passInp = document.getElementById("password").value;
@@ -550,7 +552,6 @@
             return;
         }
 
-        // جلب المستخدم من السيرفر السحابي مباشرة
         const foundUser = await fetchUserFromCloud(userInp);
 
         if (!foundUser || foundUser.password !== passInp) {
@@ -593,9 +594,6 @@
         document.getElementById("log").value = "";
     }
 
-    // -------------------------------------------------------------
-    // حفظ العضو أو تعديله سحابياً (Supabase API POST/PATCH)
-    // -------------------------------------------------------------
     async function createUser() {
         const usernameInp = document.getElementById("new-user").value.trim();
         const passwordInp = document.getElementById("new-pass").value;
@@ -616,15 +614,13 @@
             return;
         }
 
-        // فصل التاريخ عن الوقت لإرساله بالأعمدة المطابقة تماماً لطلبك
-        const startDate = startVal.slice(0, 10); // YYYY-MM-DD
-        const startTime = startVal.slice(11, 16) + ":00"; // HH:MM:SS
+        const startDate = startVal.slice(0, 10);
+        const startTime = startVal.slice(11, 16) + ":00";
         const endDate = endVal.slice(0, 10);
         const endTime = endVal.slice(11, 16) + ":00";
 
         try {
             if (editingId) {
-                // تعديل في السحاب (PATCH)
                 const res = await fetch(`${SUPABASE_URL}/rest/v1/users?USERNAME=eq.${encodeURIComponent(editingId)}`, {
                     method: 'PATCH',
                     headers: {
@@ -650,14 +646,12 @@
                 }
                 cancelEdit();
             } else {
-                // التحقق من تكرار المستخدم سحابياً أولاً
                 const existing = await fetchUserFromCloud(usernameInp);
                 if (existing) {
                     alert("⚠️ اسم هذا العضو مسجل مسبقاً في قاعدة البيانات السحابية!");
                     return;
                 }
 
-                // إضافة مستخدم جديد (POST)
                 const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
                     method: 'POST',
                     headers: {
@@ -696,9 +690,6 @@
         }
     }
 
-    // -------------------------------------------------------------
-    // حذف مستخدم من السيرفر السحابي (DELETE)
-    // -------------------------------------------------------------
     async function deleteUser(username) {
         if (username === "admin") {
             alert("❌ لا يمكن حذف الحساب الإداري الرئيسي!");
@@ -730,7 +721,6 @@
         }
     }
 
-    // ملء بيانات التعديل في لوحة التحكم
     async function editUser(username) {
         const user = await fetchUserFromCloud(username);
         if (!user) return;
@@ -764,9 +754,6 @@
         document.getElementById("cancel-edit-btn").style.display = "none";
     }
 
-    // -------------------------------------------------------------
-    // جلب كافة المستخدمين وعرضهم في الجدول من السيرفر السحابي
-    // -------------------------------------------------------------
     async function renderUserList() {
         const tbody = document.getElementById("user-list-tbody");
         tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #777;">جاري التحديث من السيرفر...</td></tr>`;
@@ -787,7 +774,6 @@
             const cloudUsers = await res.json();
             tbody.innerHTML = "";
 
-            // الحساب الإداري المحلي الثابت دائماً يعرض في الأعلى
             const adminTr = document.createElement("tr");
             adminTr.innerHTML = `
                 <td><strong>admin</strong></td>
@@ -855,17 +841,24 @@
         return new Date(dateParts[2], dateParts[0] - 1, dateParts[1], hour, minute, 0, 0);
     }
 
+    // استخراج الكود والاسم بدقة فائقة بغض النظر عن مكانه ومحتواه
     function extractMedicData(line) {
-        let match = line.match(/^\s*\[([^\]]+)\]\s+(.+?)\s+\[[^\]]+\]\s*,/);
-        if (match) return { code: match[1].trim(), name: match[2].trim() };
-        
-        match = line.match(/^\s*\[([^\]]+)\]\s+(.+?)\s*,/);
-        if (match) return { code: match[1].trim(), name: match[2].trim() };
+        const codeMatch = line.match(/\[([MAF]-\d+)\]/i);
+        if (codeMatch) {
+            const code = codeMatch[1].trim();
+            let namePart = line
+                .replace(/اسم المسعف:\s*/i, "")
+                .replace(/\[[MAF]-\d+\]/gi, "") 
+                .replace(/\[[^\]]+\]/g, "")      
+                .replace(/—.*$/, "")             
+                .replace(/,.*$/, "")             
+                .trim();
+            return { code: code, name: namePart };
+        }
         return null;
     }
 
-    // تحليل المباشرات للمسعفين
-   // تحليل المباشرات للمسعفين
+    // تحليل المباشرات للمسعفين والإداريين بدقة
     function analyze() {
         const logElement = document.getElementById("log");
         const resDiv = document.getElementById("res");
@@ -894,10 +887,8 @@
                 medicCode = medicData.code;
             }
 
-            // تعبيرات منتظمة للتحقق من الصيغ المختلفة للوقت والتاريخ
             const yesterdayMatch = line.match(/\bYesterday(?:\s+at)?\s+(\d{1,2}:\d{2}\s*[AP]M)\b/i);
             const fullDateMatch = line.match(/\b(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d{1,2}:\d{2}\s*[AP]M)\b/i);
-            // التقاط صيغة الوقت بمفرده (بدون تاريخ أو كلمة Yesterday)
             const timeOnlyMatch = line.match(/(?:\s|^)(\d{1,2}:\d{2}\s*[AP]M)(?:\s|$)/i);
 
             if (yesterdayMatch) {
@@ -915,7 +906,6 @@
                     dateTime: parseDateTime(fullDateMatch[1], fullDateMatch[2])
                 };
             } else if (timeOnlyMatch && !line.includes("/") && !line.toLowerCase().includes("yesterday")) {
-                // إذا وجد وقت فقط بدون أي إشارة لتاريخ أو أمس، يتم اعتباره اليوم الحالي للمستخدم
                 const today = new Date();
                 const dateText = formatDate(today);
                 pendingTimestamp = {
@@ -938,30 +928,44 @@
             return;
         }
 
+        const isAdminCode = /^[MAF]-/i.test(medicCode);
+
         entries.sort((a, b) => a.dateTime - b.dateTime);
         const daysData = {};
+        const daysHasThreeHoursContinuous = {};
 
         entries.forEach(entry => {
             if (!Object.prototype.hasOwnProperty.call(daysData, entry.date)) {
                 daysData[entry.date] = 0;
+                daysHasThreeHoursContinuous[entry.date] = false;
             }
         });
 
         function addSessionMinutesByDay(loginDateTime, logoutDateTime) {
             if (!(loginDateTime instanceof Date) || !(logoutDateTime instanceof Date) || logoutDateTime <= loginDateTime) return;
-            let cursor = new Date(loginDateTime);
+            
+            const totalSessionMinutes = (logoutDateTime - loginDateTime) / (1000 * 60);
 
+            let cursor = new Date(loginDateTime);
             while (cursor < logoutDateTime) {
                 const nextMidnight = new Date(cursor);
-                nextMidnight.setHours(24, 0, 0, 0);
+                nextMidnight.setHours(24, 0, 0, 0); 
+                
                 const segmentEnd = new Date(Math.min(nextMidnight.getTime(), logoutDateTime.getTime()));
                 const dateKey = formatDate(cursor);
                 const segmentMinutes = (segmentEnd - cursor) / (1000 * 60);
 
                 if (!Object.prototype.hasOwnProperty.call(daysData, dateKey)) {
                     daysData[dateKey] = 0;
+                    daysHasThreeHoursContinuous[dateKey] = false;
                 }
+                
                 daysData[dateKey] += segmentMinutes;
+                
+                if (totalSessionMinutes >= 180) {
+                    daysHasThreeHoursContinuous[dateKey] = true;
+                }
+
                 cursor = segmentEnd;
             }
         }
@@ -979,7 +983,7 @@
         });
 
         const sortedDates = Object.keys(daysData).sort((a, b) => parseDateOnly(b) - parseDateOnly(a));
-        let validDaysCount = 0;
+        let totalCalculatedDays = 0;
         let htmlOut = "";
 
         const safeMedicName = escapeHTML(medicName);
@@ -987,17 +991,30 @@
 
         htmlOut += `
             <div class="medic-card">
-                اسم المسعف: <strong>${safeMedicName}</strong>
+                الاسم: <strong>${safeMedicName}</strong>
                 ${safeMedicCode ? `<span>[${safeMedicCode}]</span>` : ""}
+                <br>
+                <span style="font-size: 14px; color: #555;">نوع الحساب: <strong>${isAdminCode ? "إداري 🛡️" : "مسعف ميداني 🚑"}</strong></span>
             </div>
         `;
 
         sortedDates.forEach(date => {
-            const completed = daysData[date] >= 60;
+            const minutes = daysData[date];
+            const hasContinuous3Hrs = daysHasThreeHoursContinuous[date];
+            const hasSum3Hrs = minutes >= 180;
+
             const safeDate = escapeHTML(date);
 
-            if (completed) {
-                validDaysCount++;
+            if (isAdminCode && (hasContinuous3Hrs || hasSum3Hrs)) {
+                totalCalculatedDays += 2;
+                htmlOut += `
+                    <div class="status-card ok" style="border-right-color: var(--warning);">
+                        <span>يوم <strong>${safeDate}</strong></span>
+                        <span class="status-text" style="color: var(--warning);">تمت المباشرة (إدارة - يومين) 🎖️</span>
+                    </div>
+                `;
+            } else if (minutes >= 60) { 
+                totalCalculatedDays += 1;
                 htmlOut += `
                     <div class="status-card ok">
                         <span>يوم <strong>${safeDate}</strong></span>
@@ -1016,12 +1033,78 @@
 
         htmlOut += `
             <div class="summary">
-                <h2>إجمالي الأيام المستوفية للشروط (ساعة أو أكثر): ${validDaysCount} يوم</h2>
+                <h2>إجمالي الأيام المحتسبة: ${totalCalculatedDays} يوم</h2>
             </div>
         `;
 
         resDiv.innerHTML = htmlOut;
     }
+
+    // =============================================================
+    // 🛡️ نظام الحماية الشامل لمنع الفحص وسرقة الكود (JS Defense Shield)
+    // =============================================================
+
+    // 1. منع استخدام الزر الأيمن للفأرة (Context Menu)
+    document.addEventListener("contextmenu", e => e.preventDefault());
+
+    // 2. حظر الاختصارات الشهيرة لأدوات المطورين في المتصفح
+    document.addEventListener("keydown", e => {
+        const key = e.key.toLowerCase();
+        
+        // منع F12
+        if (e.keyCode === 123 || key === "f12") {
+            e.preventDefault();
+            return false;
+        }
+        
+        // منع Ctrl+U (رؤية السورس كود)
+        if (e.ctrlKey && key === "u") {
+            e.preventDefault();
+            return false;
+        }
+        
+        // منع Ctrl+Shift+I (فتح أدوات المطورين)
+        if (e.ctrlKey && e.shiftKey && key === "i") {
+            e.preventDefault();
+            return false;
+        }
+        
+        // منع Ctrl+Shift+J (فتح الـ Console)
+        if (e.ctrlKey && e.shiftKey && key === "j") {
+            e.preventDefault();
+            return false;
+        }
+
+        // منع Ctrl+Shift+C (تحديد عناصر الـ HTML)
+        if (e.ctrlKey && e.shiftKey && key === "c") {
+            e.preventDefault();
+            return false;
+        }
+        
+        // منع Ctrl+S (حفظ الصفحة بالكامل)
+        if (e.ctrlKey && key === "s") {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // 3. حلقة تجميد مصحح الأخطاء (Debugger Loop)
+    // هذه الخدعة تجعل المتصفح يقع في نافذة Debugger متكررة بلا نهاية إذا نجح في فتح الأدوات بطريقة ملتوية.
+    (function() {
+        const freeze = function() {
+            try {
+                (function() {
+                    const debugFunc = function() {
+                        // استدعاء المطور لغرض التجميد
+                        debugger;
+                    };
+                    debugFunc();
+                })();
+            } catch (err) {}
+        };
+        // الفحص والتشغيل المتكرر كل نصف ثانية
+        setInterval(freeze, 500);
+    })();
 </script>
 
 </body>
